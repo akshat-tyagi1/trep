@@ -5,32 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CampusConnect - Lost & Found + Resell</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Google Fonts - Comic Sans vibe but actually readable -->
-    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&family=Patrick+Hand&display=swap" rel="stylesheet">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏫</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
 </head>
 <body>
-    <!-- Animated background blobs -->
-    <div class="bg-blob blob-1"></div>
-    <div class="bg-blob blob-2"></div>
-    <div class="bg-blob blob-3"></div>
-    
     <!-- Header -->
     <header class="main-header">
         <div class="header-content">
             <div class="logo">
-                <span class="logo-icon">🏫</span>
-                <h1>CampusConnect</h1>
+                <span class="logo-wordmark">CampusConnect</span>
             </div>
-            
             <nav class="main-nav">
-                <button class="nav-btn active" data-tab="lostfound">
-                    <span class="nav-icon">🔍</span> Lost & Found
-                </button>
-                <button class="nav-btn" data-tab="resell">
-                    <span class="nav-icon">💰</span> Resell Market
-                </button>
+                <button class="nav-btn active" data-tab="lostfound">Lost &amp; Found</button>
+                <button class="nav-btn" data-tab="resell">Resell Market</button>
             </nav>
+            <div class="header-actions">
+                <button type="button" class="btn btn-primary post-btn" id="lf-post-btn-header" style="display:none" data-for="lf">+ Post Item</button>
+                <button type="button" class="btn btn-primary post-btn" id="rs-post-btn-header" style="display:none" data-for="rs">+ List Item</button>
+            </div>
         </div>
     </header>
 
@@ -38,27 +30,27 @@
         <!-- LOST & FOUND TAB -->
         <section id="lostfound" class="tab-content active">
             <div class="section-header">
-                <h2>🔍 Lost & Found</h2>
-                <p class="section-desc">Lost something? Found something? Post it here!</p>
+                <div class="section-header-text">
+                    <h2>Lost &amp; Found</h2>
+                    <p class="section-desc">Lost something? Found something? Post it here!</p>
+                </div>
             </div>
 
             <!-- Search Bar, Sort & Post Item Button -->
             <div class="tab-controls">
                 <div class="search-bar">
-                    <span class="search-icon">🔍</span>
-                    <input type="text" id="lf-search" class="search-input" placeholder="Search by name, description, location...">
+                    <svg class="search-icon-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
+                    <input type="text" id="lf-search" class="search-input" placeholder="Search items, description, location...">
                 </div>
                 <div class="controls-right">
                     <div class="sort-box">
                         <label for="lf-sort" class="sort-label">Sort:</label>
                         <select id="lf-sort" class="sort-select">
-                            <option value="newest">🕒 Newest</option>
-                            <option value="oldest">⌛ Oldest</option>
+                            <option value="newest">Newest</option>
+                            <option value="oldest">Oldest</option>
                         </select>
                     </div>
-                    <button type="button" class="btn btn-primary post-btn" id="lf-post-btn">
-                        <span>➕ Post Item</span>
-                    </button>
+                    <button type="button" class="btn btn-primary post-btn" id="lf-post-btn">+ Post Item</button>
                 </div>
             </div>
 
@@ -154,28 +146,28 @@
         <!-- RESELL TAB -->
         <section id="resell" class="tab-content">
             <div class="section-header">
-                <h2>💰 Resell Market</h2>
-                <p class="section-desc">Sell your used stuff to fellow students. Textbooks, gadgets, furniture & more!</p>
+                <div class="section-header-text">
+                    <h2>Resell Market</h2>
+                    <p class="section-desc">Sell your used stuff to fellow students. Textbooks, gadgets, furniture &amp; more!</p>
+                </div>
             </div>
 
             <!-- Search Bar, Sort & Post Item Button -->
             <div class="tab-controls">
                 <div class="search-bar">
-                    <span class="search-icon">🔍</span>
-                    <input type="text" id="rs-search" class="search-input" placeholder="Search by name, description, location...">
+                    <svg class="search-icon-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
+                    <input type="text" id="rs-search" class="search-input" placeholder="Search items, description, location...">
                 </div>
                 <div class="controls-right">
                     <div class="sort-box">
                         <label for="rs-sort" class="sort-label">Sort:</label>
                         <select id="rs-sort" class="sort-select">
-                            <option value="newest">🕒 Newest</option>
-                            <option value="price-asc">💵 Price: Low to High</option>
-                            <option value="price-desc">💰 Price: High to Low</option>
+                            <option value="newest">Newest</option>
+                            <option value="price-asc">Price: Low to High</option>
+                            <option value="price-desc">Price: High to Low</option>
                         </select>
                     </div>
-                    <button type="button" class="btn btn-primary post-btn" id="rs-post-btn">
-                        <span>➕ Post Item</span>
-                    </button>
+                    <button type="button" class="btn btn-primary post-btn" id="rs-post-btn">+ List Item</button>
                 </div>
             </div>
 
@@ -301,13 +293,7 @@
     <!-- Footer -->
     <footer class="main-footer">
         <div class="footer-content">
-            <p>🎓 CampusConnect v1.0.0 | Built for CS101 Final Project</p>
-            <p class="footer-note">Data stored in browser localStorage • No backend • Refresh = data stays! 😎</p>
-            <div class="footer-links">
-                <a href="#" onclick="showCredits()">Credits</a>
-                <span>•</span>
-                <a href="#" onclick="clearAllData()">⚠️ Clear All Data (Debug)</a>
-            </div>
+            <p>CampusConnect &mdash; Data stored in your browser &nbsp;·&nbsp; <a href="#" onclick="clearAllData()">Clear data</a></p>
         </div>
     </footer>
 

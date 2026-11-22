@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusConnect - Lost & Found + Resell</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts - Comic Sans vibe but actually readable -->
+    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&family=Patrick+Hand&display=swap" rel="stylesheet">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏫</text></svg>">
+</head>
+<body>
+    <!-- Animated background blobs -->
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+    <div class="bg-blob blob-3"></div>
+    
+    <!-- Header -->
+    <header class="main-header">
+        <div class="header-content">
+            <div class="logo">
+                <span class="logo-icon">🏫</span>
+                <h1>CampusConnect</h1>
+            </div>
+            
+            <nav class="main-nav">
+                <button class="nav-btn active" data-tab="lostfound">
+                    <span class="nav-icon">🔍</span> Lost & Found
+                </button>
+                <button class="nav-btn" data-tab="resell">
+                    <span class="nav-icon">💰</span> Resell Market
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <!-- LOST & FOUND TAB -->
+        <section id="lostfound" class="tab-content active">
+            <div class="section-header">
+                <h2>🔍 Lost & Found</h2>
+                <p class="section-desc">Lost something? Found something? Post it here!</p>
+            </div>
+
+            <!-- Search Bar, Sort & Post Item Button -->
+            <div class="tab-controls">
+                <div class="search-bar">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="lf-search" class="search-input" placeholder="Search by name, description, location...">
+                </div>
+                <div class="controls-right">
+                    <div class="sort-box">
+                        <label for="lf-sort" class="sort-label">Sort:</label>
+                        <select id="lf-sort" class="sort-select">
+                            <option value="newest">🕒 Newest</option>
+                            <option value="oldest">⌛ Oldest</option>
+                        </select>
+                    </div>
+                    <button type="button" class="btn btn-primary post-btn" id="lf-post-btn">
+                        <span>➕ Post Item</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filter Tabs & Clear Filter Button -->
+            <div class="filter-row">
+                <div class="filter-tabs">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="lost">😭 Lost</button>
+                    <button class="filter-btn" data-filter="found">🎉 Found</button>
+                </div>
+                <button type="button" class="btn-clear-filters" id="lf-clear-filters" style="display: none;">
+                    ✕ Clear filters
+                </button>
+            </div>
+
+            <!-- Items Grid -->
+            <div class="items-grid" id="lf-grid">
+                <!-- Items will be rendered here by JS -->
+            </div>
+
+            <!-- Empty State Container -->
+            <div class="empty-state" id="lf-empty" style="display: none;">
+                <div class="empty-icon" id="lf-empty-icon">📭</div>
+                <h3 id="lf-empty-title">No items yet!</h3>
+                <p id="lf-empty-desc">Be the first to post a lost or found item.</p>
+                <button type="button" class="btn btn-secondary btn-sm clear-filters-btn" id="lf-empty-clear-btn" style="display:none; margin-top: 1rem;">
+                    ✕ Clear filters
+                </button>
+            </div>
+
+            <!-- Post / Edit Item Modal -->
+            <div class="modal form-modal" id="lf-modal">
+                <div class="modal-content form-modal-content">
+                    <button type="button" class="modal-close" id="lf-modal-close" aria-label="Close modal">&times;</button>
+                    <div class="card form-card" id="lf-form-card">
+                        <h3 id="lf-form-title">📝 Post New Item</h3>
+                        <form id="lf-form" class="item-form" novalidate>
+                            <div class="form-row">
+                                <label for="lf-type">Type: *</label>
+                                <select id="lf-type" name="type">
+                                    <option value="">Select...</option>
+                                    <option value="lost">😭 LOST - I lost this</option>
+                                    <option value="found">🎉 FOUND - I found this</option>
+                                </select>
+                                <span class="field-error" id="err-lf-type"></span>
+                            </div>
+                            <div class="form-row">
+                                <label for="lf-title">Item Name *</label>
+                                <input type="text" id="lf-title" name="title" placeholder="e.g., Blue backpack, iPhone 13, Keys">
+                                <span class="field-error" id="err-lf-title"></span>
+                            </div>
+                            <div class="form-row">
+                                <label for="lf-desc">Description *</label>
+                                <textarea id="lf-desc" name="desc" rows="3" placeholder="Describe the item, color, brand, any unique marks..."></textarea>
+                                <span class="field-error" id="err-lf-desc"></span>
+                            </div>
+                            <div class="form-row">
+                                <label for="lf-location">Location *</label>
+                                <input type="text" id="lf-location" name="location" placeholder="e.g., Library 2nd floor, Canteen, Hostel Block A">
+                                <span class="field-error" id="err-lf-location"></span>
+                            </div>
+                            <div class="form-row">
+                                <label for="lf-date">Date *</label>
+                                <input type="date" id="lf-date" name="date">
+                                <span class="field-error" id="err-lf-date"></span>
+                            </div>
+                            <div class="form-row">
+                                <label for="lf-contact">Your Contact (Phone/Email/Insta) *</label>
+                                <input type="text" id="lf-contact" name="contact" placeholder="How can someone reach you?">
+                                <span class="field-error" id="err-lf-contact"></span>
+                            </div>
+                            <div class="form-row">
+                                <label for="lf-image">Upload Photo (Optional)</label>
+                                <input type="file" id="lf-image" name="image" accept="image/*">
+                                <small class="form-hint">Max 5MB. Auto-compressed before saving.</small>
+                                <span class="field-error" id="err-lf-image"></span>
+                                <div id="lf-image-preview" class="image-preview-container"></div>
+                            </div>
+                            <div class="form-row checkbox-row">
+                                <input type="checkbox" id="lf-anonymous" name="anonymous">
+                                <label for="lf-anonymous">Post anonymously (hide my contact)</label>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-submit">
+                                <span class="btn-text">Post Item</span>
+                                <span class="btn-loader" style="display:none;">⏳ Posting...</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- RESELL TAB -->
+        <section id="resell" class="tab-content">
+            <div class="section-header">
+                <h2>💰 Resell Market</h2>
+                <p class="section-desc">Sell your used stuff to fellow students. Textbooks, gadgets, furniture & more!</p>
+            </div>
+
+            <!-- Search Bar, Sort & Post Item Button -->
+            <div class="tab-controls">
+                <div class="search-bar">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="rs-search" class="search-input" placeholder="Search by name, description, location...">
+                </div>
+                <div class="controls-right">
+                    <div class="sort-box">
+                        <label for="rs-sort" class="sort-label">Sort:</label>
+                        <select id="rs-sort" class="sort-select">
+                            <option value="newest">🕒 Newest</option>
+                            <option value="price-asc">💵 Price: Low to High</option>
+                            <option value="price-desc">💰 Price: High to Low</option>
+                        </select>
+                    </div>
+                    <button type="button" class="btn btn-primary post-btn" id="rs-post-btn">
+                        <span>➕ Post Item</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filter Tabs & Clear Filter Button -->
+            <div class="filter-row">
+                <div class="filter-tabs">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="books">📚 Books</button>
+                    <button class="filter-btn" data-filter="electronics">💻 Electronics</button>
+                    <button class="filter-btn" data-filter="furniture">🪑 Furniture</button>
+                    <button class="filter-btn" data-filter="clothing">👕 Clothing</button>
+                    <button class="filter-btn" data-filter="vehicles">🛵 Vehicles</button>
+                    <button class="filter-btn" data-filter="other">📦 Other</button>
+                </div>
+                <button type="button" class="btn-clear-filters" id="rs-clear-filters" style="display: none;">
+                    ✕ Clear filters
+                </button>
+            </div>
+
+            <!-- Items Grid -->
+            <div class="items-grid" id="rs-grid">
+                <!-- Items will be rendered here by JS -->
+            </div>
+
+            <!-- Empty State Container -->
+            <div class="empty-state" id="rs-empty" style="display: none;">
+                <div class="empty-icon" id="rs-empty-icon">🛒</div>
+                <h3 id="rs-empty-title">Nothing for sale yet!</h3>
+                <p id="rs-empty-desc">List your first item and make some cash 💸</p>
+                <button type="button" class="btn btn-secondary btn-sm clear-filters-btn" id="rs-empty-clear-btn" style="display:none; margin-top: 1rem;">
+                    ✕ Clear filters
+                </button>
+            </div>
+
+            <!-- Post / Edit Item Modal -->
+            <div class="modal form-modal" id="rs-modal">
+                <div class="modal-content form-modal-content">
+                    <button type="button" class="modal-close" id="rs-modal-close" aria-label="Close modal">&times;</button>
+                    <div class="card form-card" id="rs-form-card">
+                        <h3 id="rs-form-title">📝 List Item for Sale</h3>
+                        <form id="rs-form" class="item-form" novalidate>
+                            <div class="form-row">
+                                <label for="rs-title">Item Name *</label>
+                                <input type="text" id="rs-title" name="title" placeholder="e.g., Calculus Textbook, Gaming Laptop, Mini Fridge">
+                                <span class="field-error" id="err-rs-title"></span>
+                            </div>
+                            <div class="form-row">
+                                <label for="rs-category">Category *</label>
+                                <select id="rs-category" name="category">
+                                    <option value="">Select Category</option>
+                                    <option value="books">📚 Books & Notes</option>
+                                    <option value="electronics">💻 Electronics</option>
+                                    <option value="furniture">🪑 Furniture</option>
+                                    <option value="clothing">👕 Clothing</option>
+                                    <option value="vehicles">🛵 Vehicles/Bikes</option>
+                                    <option value="other">📦 Other</option>
+                                </select>
+                                <span class="field-error" id="err-rs-category"></span>
+                            </div>
+                            <div class="form-row">
+                                <label for="rs-price">Price (₹) *</label>
+                                <input type="number" id="rs-price" name="price" min="1" step="1" placeholder="e.g., 500">
+                                <span class="field-error" id="err-rs-price"></span>
+                            </div>
+                            <div class="form-row">
+                                <label for="rs-condition">Condition *</label>
+                                <select id="rs-condition" name="condition">
+                                    <option value="">Select Condition</option>
+                                    <option value="new">✨ Like New</option>
+                                    <option value="good">👍 Good</option>
+                                    <option value="fair">😐 Fair</option>
+                                    <option value="poor">😅 Needs Work</option>
+                                </select>
+                                <span class="field-error" id="err-rs-condition"></span>
+                            </div>
+                            <div class="form-row">
+                                <label for="rs-desc">Description *</label>
+                                <textarea id="rs-desc" name="desc" rows="3" placeholder="Details: brand, model, age, any defects, what's included..."></textarea>
+                                <span class="field-error" id="err-rs-desc"></span>
+                            </div>
+                            <div class="form-row">
+                                <label for="rs-location">Pickup Location *</label>
+                                <input type="text" id="rs-location" name="location" placeholder="e.g., Hostel Block B Room 204, Main Gate">
+                                <span class="field-error" id="err-rs-location"></span>
+                            </div>
+                            <div class="form-row">
+                                <label for="rs-contact">Your Contact *</label>
+                                <input type="text" id="rs-contact" name="contact" placeholder="Phone / Email / Instagram handle">
+                                <span class="field-error" id="err-rs-contact"></span>
+                            </div>
+                            <div class="form-row">
+                                <label for="rs-images">Upload Photos (Max 4) *</label>
+                                <input type="file" id="rs-images" name="images" accept="image/*" multiple>
+                                <small class="form-hint">Max 5MB each. Up to 4 photos allowed (auto-compressed).</small>
+                                <span class="field-error" id="err-rs-images"></span>
+                                <div id="rs-images-preview" class="image-preview-container"></div>
+                            </div>
+                            <div class="form-row checkbox-row">
+                                <input type="checkbox" id="rs-negotiable" name="negotiable">
+                                <label for="rs-negotiable">Price is negotiable 💬</label>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-submit">
+                                <span class="btn-text">List for Sale</span>
+                                <span class="btn-loader" style="display:none;">⏳ Listing...</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Item Detail Modal -->
+    <div class="modal detail-modal" id="detail-modal">
+        <div class="modal-content detail-modal-content">
+            <button type="button" class="modal-close" onclick="closeModal()" aria-label="Close modal">&times;</button>
+            <div id="detail-content" class="detail-container">
+                <!-- Dynamically rendered by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+        <div class="footer-content">
+            <p>🎓 CampusConnect v1.0.0 | Built for CS101 Final Project</p>
+            <p class="footer-note">Data stored in browser localStorage • No backend • Refresh = data stays! 😎</p>
+            <div class="footer-links">
+                <a href="#" onclick="showCredits()">Credits</a>
+                <span>•</span>
+                <a href="#" onclick="clearAllData()">⚠️ Clear All Data (Debug)</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Image Preview Modal -->
+    <div class="modal" id="image-modal">
+        <div class="modal-content">
+            <button type="button" class="modal-close" onclick="closeModal()">&times;</button>
+            <img id="modal-img" src="" alt="Full size image">
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

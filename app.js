@@ -352,7 +352,9 @@ let state = {
     lfFilter: 'all',
     rsFilter: 'all',
     lfSearch: '',
-    rsSearch: ''
+    rsSearch: '',
+    lfSort: 'newest',
+    rsSort: 'newest'
 };
 
 // ============ UTILITY FUNCTIONS ============
@@ -488,13 +490,75 @@ function loadData() {
     state.resell = getPosts('resell');
 }
 
-// ============ FILTER FUNCTIONS ============
+// ============ FILTER & SORT FUNCTIONS ============
+
+function isLFFiltersActive() {
+    return state.lfFilter !== 'all' || 
+           (state.lfSearch && state.lfSearch.trim().length > 0) || 
+           state.lfSort !== 'newest';
+}
+
+function isRSFiltersActive() {
+    return state.rsFilter !== 'all' || 
+           (state.rsSearch && state.rsSearch.trim().length > 0) || 
+           state.rsSort !== 'newest';
+}
+
+function clearLFFilters() {
+    state.lfFilter = 'all';
+    state.lfSearch = '';
+    state.lfSort = 'newest';
+
+    const searchInput = document.getElementById('lf-search');
+    if (searchInput) searchInput.value = '';
+
+    const sortSelect = document.getElementById('lf-sort');
+    if (sortSelect) sortSelect.value = 'newest';
+
+    document.querySelectorAll('#lostfound .filter-btn').forEach(btn => {
+        if (btn.dataset.filter === 'all') {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
+    renderLostFound();
+    updateEmptyStates();
+}
+
+function clearRSFilters() {
+    state.rsFilter = 'all';
+    state.rsSearch = '';
+    state.rsSort = 'newest';
+
+    const searchInput = document.getElementById('rs-search');
+    if (searchInput) searchInput.value = '';
+
+    const sortSelect = document.getElementById('rs-sort');
+    if (sortSelect) sortSelect.value = 'newest';
+
+    document.querySelectorAll('#resell .filter-btn').forEach(btn => {
+        if (btn.dataset.filter === 'all') {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
+    renderResell();
+    updateEmptyStates();
+}
 
 function getFilteredLFItems() {
-    let items = state.lostFound;
+    let items = [...state.lostFound];
+
+    // Filter by category/type (All / Lost / Found)
     if (state.lfFilter !== 'all') {
         items = items.filter(item => item.type === state.lfFilter);
     }
+
+    // Working search: matches name (title), description and location live
     if (state.lfSearch && state.lfSearch.trim()) {
         const query = state.lfSearch.trim().toLowerCase();
         items = items.filter(item => {
@@ -504,25 +568,51 @@ function getFilteredLFItems() {
             return title.includes(query) || desc.includes(query) || location.includes(query);
         });
     }
+
+    // Sort: Newest, Oldest
+    items.sort((a, b) => {
+        const timeA = new Date(a.createdAt || a.date || 0).getTime();
+        const timeB = new Date(b.createdAt || b.date || 0).getTime();
+        if (state.lfSort === 'oldest') {
+            return timeA - timeB;
+        }
+        return timeB - timeA;
+    });
+
     return items;
 }
 
 function getFilteredRSItems() {
-    let items = state.resell;
+    let items = [...state.resell];
+
+    // Filter by category
     if (state.rsFilter !== 'all') {
         items = items.filter(item => item.category === state.rsFilter);
     }
+
+    // Working search: matches name (title), description and location live
     if (state.rsSearch && state.rsSearch.trim()) {
         const query = state.rsSearch.trim().toLowerCase();
         items = items.filter(item => {
             const title = (item.title || '').toLowerCase();
             const desc = (item.desc || '').toLowerCase();
             const location = (item.location || '').toLowerCase();
-            const category = (item.category || '').toLowerCase();
-            const condition = (item.condition || '').toLowerCase();
-            return title.includes(query) || desc.includes(query) || location.includes(query) || category.includes(query) || condition.includes(query);
+            return title.includes(query) || desc.includes(query) || location.includes(query);
         });
     }
+
+    // Sort: Newest, Price low to high, Price high to low
+    items.sort((a, b) => {
+        if (state.rsSort === 'price-asc') {
+            return (Number(a.price) || 0) - (Number(b.price) || 0);
+        } else if (state.rsSort === 'price-desc') {
+            return (Number(b.price) || 0) - (Number(a.price) || 0);
+        }
+        const timeA = new Date(a.createdAt || 0).getTime();
+        const timeB = new Date(b.createdAt || 0).getTime();
+        return timeB - timeA;
+    });
+
     return items;
 }
 
@@ -535,30 +625,86 @@ function renderAll() {
 }
 
 function updateEmptyStates() {
-    // Lost & Found
+    // --- Lost & Found ---
     const lfGrid = document.getElementById('lf-grid');
     const lfEmpty = document.getElementById('lf-empty');
-    const lfItems = getFilteredLFItems();
+    const lfEmptyIcon = document.getElementById('lf-empty-icon');
+    const lfEmptyTitle = document.getElementById('lf-empty-title');
+    const lfEmptyDesc = document.getElementById('lf-empty-desc');
+    const lfEmptyClearBtn = document.getElementById('lf-empty-clear-btn');
+    const lfClearFiltersBtn = document.getElementById('lf-clear-filters');
     
-    if (lfItems.length === 0) {
-        lfGrid.style.display = 'none';
-        lfEmpty.style.display = 'block';
-    } else {
-        lfGrid.style.display = 'grid';
-        lfEmpty.style.display = 'none';
+    const lfTotalCount = state.lostFound.length;
+    const lfFilteredItems = getFilteredLFItems();
+    const lfFiltersActive = isLFFiltersActive();
+
+    // Toggle filter-row clear button
+    if (lfClearFiltersBtn) {
+        lfClearFiltersBtn.style.display = lfFiltersActive ? 'inline-flex' : 'none';
     }
-    
-    // Resell
+
+    if (lfFilteredItems.length === 0) {
+        if (lfGrid) lfGrid.style.display = 'none';
+        if (lfEmpty) {
+            lfEmpty.style.display = 'block';
+            if (lfTotalCount === 0) {
+                // "Nothing posted yet" state
+                if (lfEmptyIcon) lfEmptyIcon.textContent = '📭';
+                if (lfEmptyTitle) lfEmptyTitle.textContent = 'No items yet!';
+                if (lfEmptyDesc) lfEmptyDesc.textContent = 'Be the first to post a lost or found item.';
+                if (lfEmptyClearBtn) lfEmptyClearBtn.style.display = 'none';
+            } else {
+                // "No results for your search" state
+                if (lfEmptyIcon) lfEmptyIcon.textContent = '🔍';
+                if (lfEmptyTitle) lfEmptyTitle.textContent = 'No results for your search';
+                if (lfEmptyDesc) lfEmptyDesc.textContent = 'We couldn\'t find any items matching your criteria. Try adjusting your search or clearing filters.';
+                if (lfEmptyClearBtn) lfEmptyClearBtn.style.display = 'inline-block';
+            }
+        }
+    } else {
+        if (lfGrid) lfGrid.style.display = 'grid';
+        if (lfEmpty) lfEmpty.style.display = 'none';
+    }
+
+    // --- Resell ---
     const rsGrid = document.getElementById('rs-grid');
     const rsEmpty = document.getElementById('rs-empty');
-    const rsItems = getFilteredRSItems();
-    
-    if (rsItems.length === 0) {
-        rsGrid.style.display = 'none';
-        rsEmpty.style.display = 'block';
+    const rsEmptyIcon = document.getElementById('rs-empty-icon');
+    const rsEmptyTitle = document.getElementById('rs-empty-title');
+    const rsEmptyDesc = document.getElementById('rs-empty-desc');
+    const rsEmptyClearBtn = document.getElementById('rs-empty-clear-btn');
+    const rsClearFiltersBtn = document.getElementById('rs-clear-filters');
+
+    const rsTotalCount = state.resell.length;
+    const rsFilteredItems = getFilteredRSItems();
+    const rsFiltersActive = isRSFiltersActive();
+
+    // Toggle filter-row clear button
+    if (rsClearFiltersBtn) {
+        rsClearFiltersBtn.style.display = rsFiltersActive ? 'inline-flex' : 'none';
+    }
+
+    if (rsFilteredItems.length === 0) {
+        if (rsGrid) rsGrid.style.display = 'none';
+        if (rsEmpty) {
+            rsEmpty.style.display = 'block';
+            if (rsTotalCount === 0) {
+                // "Nothing posted yet" state
+                if (rsEmptyIcon) rsEmptyIcon.textContent = '🛒';
+                if (rsEmptyTitle) rsEmptyTitle.textContent = 'Nothing for sale yet!';
+                if (rsEmptyDesc) rsEmptyDesc.textContent = 'List your first item and make some cash 💸';
+                if (rsEmptyClearBtn) rsEmptyClearBtn.style.display = 'none';
+            } else {
+                // "No results for your search" state
+                if (rsEmptyIcon) rsEmptyIcon.textContent = '🔍';
+                if (rsEmptyTitle) rsEmptyTitle.textContent = 'No results for your search';
+                if (rsEmptyDesc) rsEmptyDesc.textContent = 'We couldn\'t find any listings matching your criteria. Try adjusting your search or clearing filters.';
+                if (rsEmptyClearBtn) rsEmptyClearBtn.style.display = 'inline-block';
+            }
+        }
     } else {
-        rsGrid.style.display = 'grid';
-        rsEmpty.style.display = 'none';
+        if (rsGrid) rsGrid.style.display = 'grid';
+        if (rsEmpty) rsEmpty.style.display = 'none';
     }
 }
 
@@ -964,6 +1110,7 @@ function openEditForm(item) {
     const isResell = item.postType === 'resell';
 
     if (!isResell) {
+        clearFormErrors('lf-form');
         // Lost & Found form
         const modal = document.getElementById('lf-modal');
         const form = document.getElementById('lf-form');
@@ -991,6 +1138,7 @@ function openEditForm(item) {
         modal.classList.add('show');
         document.body.style.overflow = 'hidden';
     } else {
+        clearFormErrors('rs-form');
         // Resell form
         const modal = document.getElementById('rs-modal');
         const form = document.getElementById('rs-form');
@@ -1027,6 +1175,8 @@ function openEditForm(item) {
 // Reset form headers and modes back to new post
 function resetFormModes() {
     editingPostId = null;
+    clearFormErrors('lf-form');
+    clearFormErrors('rs-form');
     
     // LF Form
     const lfTitle = document.getElementById('lf-form-title');
@@ -1040,7 +1190,7 @@ function resetFormModes() {
     const rsBtn = document.querySelector('#rs-form .btn-text');
     if (rsBtn) rsBtn.textContent = 'List for Sale';
     const rsImg = document.getElementById('rs-images');
-    if (rsImg) rsImg.required = true;
+    if (rsImg) rsImg.required = false;
 }
 
 // ============ MODAL FUNCTIONS ============
@@ -1056,6 +1206,7 @@ function openModal(imageSrc) {
 
 function openLFModal() {
     resetFormModes();
+    clearFormErrors('lf-form');
     const modal = document.getElementById('lf-modal');
     if (modal) {
         modal.classList.add('show');
@@ -1065,6 +1216,7 @@ function openLFModal() {
 
 function openRSModal() {
     resetFormModes();
+    clearFormErrors('rs-form');
     const modal = document.getElementById('rs-modal');
     if (modal) {
         modal.classList.add('show');
@@ -1151,27 +1303,120 @@ function clearFormPreviews() {
     if (rsPreview) rsPreview.innerHTML = '';
 }
 
+// ============ FORM VALIDATION HELPERS ============
+
+function setFieldError(fieldId, message) {
+    const field = document.getElementById(fieldId);
+    const errEl = document.getElementById('err-' + fieldId);
+    if (field) {
+        field.classList.add('input-error');
+    }
+    if (errEl) {
+        errEl.textContent = message;
+        errEl.classList.add('visible');
+    }
+}
+
+function clearFieldError(fieldId) {
+    const field = document.getElementById(fieldId);
+    const errEl = document.getElementById('err-' + fieldId);
+    if (field) {
+        field.classList.remove('input-error');
+    }
+    if (errEl) {
+        errEl.textContent = '';
+        errEl.classList.remove('visible');
+    }
+}
+
+function clearFormErrors(formId) {
+    const form = document.getElementById(formId);
+    if (!form) return;
+    form.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
+    form.querySelectorAll('.field-error').forEach(el => {
+        el.textContent = '';
+        el.classList.remove('visible');
+    });
+}
+
+function setupFormValidation(formId) {
+    const form = document.getElementById(formId);
+    if (!form) return;
+    const inputs = form.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+        const handler = () => {
+            if (input.id) {
+                clearFieldError(input.id);
+            }
+        };
+        input.addEventListener('input', handler);
+        input.addEventListener('change', handler);
+    });
+}
+
 // ============ FORM HANDLERS ============
 
 async function handleLFSubmit(e) {
     e.preventDefault();
     
     const form = e.target;
+    clearFormErrors('lf-form');
+
     const submitBtn = form.querySelector('.btn-submit');
     const formData = new FormData(form);
     
-    // Validate
-    const title = formData.get('title').trim();
-    const desc = formData.get('desc').trim();
-    const location = formData.get('location').trim();
+    // Extract and trim fields
+    const title = (formData.get('title') || '').trim();
+    const desc = (formData.get('desc') || '').trim();
+    const location = (formData.get('location') || '').trim();
     const date = formData.get('date');
-    const contact = formData.get('contact').trim();
+    const contact = (formData.get('contact') || '').trim();
     const type = formData.get('type');
     const anonymous = formData.get('anonymous') === 'on';
     const imageFile = formData.get('image');
     
-    if (!title || !desc || !location || !date || !contact || !type) {
-        showToast('Please fill all required fields!', 'error');
+    let hasErrors = false;
+    let firstInvalid = null;
+
+    function reportError(fieldId, msg) {
+        setFieldError(fieldId, msg);
+        hasErrors = true;
+        if (!firstInvalid) {
+            firstInvalid = document.getElementById(fieldId);
+        }
+    }
+
+    // Inline validation checks
+    if (!type) {
+        reportError('lf-type', 'Please select whether this item was lost or found.');
+    }
+    if (!title) {
+        reportError('lf-title', 'Please enter the item name.');
+    }
+    if (!desc) {
+        reportError('lf-desc', 'Please provide a description.');
+    }
+    if (!location) {
+        reportError('lf-location', 'Please specify the location.');
+    }
+    if (!date) {
+        reportError('lf-date', 'Please select a date.');
+    }
+    if (!contact) {
+        reportError('lf-contact', 'Please provide your contact information.');
+    }
+
+    if (imageFile && imageFile.size > 0) {
+        if (!validateImageType(imageFile)) {
+            reportError('lf-image', 'Invalid file type! Use JPG, PNG, WebP, or GIF.');
+        } else if (imageFile.size > 5 * 1024 * 1024) {
+            reportError('lf-image', 'Image is too large! Maximum allowed is 5MB.');
+        }
+    }
+
+    if (hasErrors) {
+        if (firstInvalid) firstInvalid.focus();
+        showToast('Please fix the errors in the form.', 'error');
         return;
     }
     
@@ -1179,20 +1424,11 @@ async function handleLFSubmit(e) {
     
     let imageData = null;
     if (imageFile && imageFile.size > 0) {
-        if (!validateImageType(imageFile)) {
-            showToast('Invalid image type! Use JPG, PNG, WebP, or GIF.', 'error');
-            submitBtn.classList.remove('loading');
-            return;
-        }
-        if (imageFile.size > 5 * 1024 * 1024) {
-            showToast('Image too large! Max 5MB.', 'error');
-            submitBtn.classList.remove('loading');
-            return;
-        }
         try {
             // Compress image via canvas to max 800px wide, 0.7 quality JPEG
             imageData = await compressImage(imageFile, 800, 0.7);
         } catch (err) {
+            reportError('lf-image', 'Failed to process image.');
             showToast('Failed to process image.', 'error');
             submitBtn.classList.remove('loading');
             return;
@@ -1217,7 +1453,11 @@ async function handleLFSubmit(e) {
             changes.image = currentPost.image;
         }
 
-        updatePost(editingPostId, changes);
+        const updated = updatePost(editingPostId, changes);
+        if (!updated) {
+            submitBtn.classList.remove('loading');
+            return;
+        }
         showToast('Item updated successfully! 🎉', 'success');
         editingPostId = null;
     } else {
@@ -1267,37 +1507,84 @@ async function handleRSSubmit(e) {
     e.preventDefault();
     
     const form = e.target;
+    clearFormErrors('rs-form');
+
     const submitBtn = form.querySelector('.btn-submit');
     const formData = new FormData(form);
     
-    // Validate
-    const title = formData.get('title').trim();
+    // Extract and trim fields
+    const title = (formData.get('title') || '').trim();
     const category = formData.get('category');
-    const price = formData.get('price');
+    const priceStr = formData.get('price');
     const condition = formData.get('condition');
-    const desc = formData.get('desc').trim();
-    const location = formData.get('location').trim();
-    const contact = formData.get('contact').trim();
+    const desc = (formData.get('desc') || '').trim();
+    const location = (formData.get('location') || '').trim();
+    const contact = (formData.get('contact') || '').trim();
     const negotiable = formData.get('negotiable') === 'on';
-    const imageFiles = formData.getAll('images');
-    
-    if (!title || !category || !price || !condition || !desc || !location || !contact) {
-        showToast('Please fill all required fields!', 'error');
-        return;
+    const rawFiles = formData.getAll('images');
+    const imageFiles = rawFiles.filter(f => f && f.size > 0);
+
+    let hasErrors = false;
+    let firstInvalid = null;
+
+    function reportError(fieldId, msg) {
+        setFieldError(fieldId, msg);
+        hasErrors = true;
+        if (!firstInvalid) {
+            firstInvalid = document.getElementById(fieldId);
+        }
+    }
+
+    // Inline validation checks
+    if (!title) {
+        reportError('rs-title', 'Please enter the item name.');
+    }
+    if (!category) {
+        reportError('rs-category', 'Please select a category.');
+    }
+    if (!priceStr || isNaN(priceStr) || Number(priceStr) <= 0) {
+        reportError('rs-price', 'Please enter a valid price in ₹ (greater than 0).');
+    }
+    if (!condition) {
+        reportError('rs-condition', 'Please select the condition.');
+    }
+    if (!desc) {
+        reportError('rs-desc', 'Please provide a description.');
+    }
+    if (!location) {
+        reportError('rs-location', 'Please specify the pickup location.');
+    }
+    if (!contact) {
+        reportError('rs-contact', 'Please provide your contact information.');
     }
     
     const currentPost = editingPostId ? getPosts().find(p => p.id === editingPostId) : null;
     const hasExistingImages = currentPost && currentPost.images && currentPost.images.length > 0;
 
     if (!editingPostId || !hasExistingImages) {
-        if (imageFiles.length === 0 || (imageFiles.length === 1 && imageFiles[0].size === 0)) {
-            showToast('Please upload at least one photo!', 'error');
-            return;
+        if (imageFiles.length === 0) {
+            reportError('rs-images', 'Please upload at least one photo.');
         }
     }
     
     if (imageFiles.length > 4) {
-        showToast('Maximum 4 photos allowed!', 'error');
+        reportError('rs-images', 'Maximum 4 photos allowed!');
+    }
+
+    for (const file of imageFiles) {
+        if (!validateImageType(file)) {
+            reportError('rs-images', `"${file.name || 'Image'}" has invalid format! Use JPG, PNG, WebP, or GIF.`);
+            break;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            reportError('rs-images', `"${file.name || 'Image'}" exceeds 5MB limit! Max 5MB per photo.`);
+            break;
+        }
+    }
+
+    if (hasErrors) {
+        if (firstInvalid) firstInvalid.focus();
+        showToast('Please fix the errors in the form.', 'error');
         return;
     }
     
@@ -1305,24 +1592,12 @@ async function handleRSSubmit(e) {
     
     const imagesData = [];
     for (const file of imageFiles) {
-        if (file.size === 0) continue;
-        
-        if (!validateImageType(file)) {
-            showToast('Invalid image type! Use JPG, PNG, WebP, or GIF.', 'error');
-            submitBtn.classList.remove('loading');
-            return;
-        }
-        if (file.size > 5 * 1024 * 1024) {
-            showToast('One or more images exceed 5MB limit!', 'error');
-            submitBtn.classList.remove('loading');
-            return;
-        }
-        
         try {
             // Compress each image via canvas to max 800px wide, 0.7 quality JPEG
             const compressed = await compressImage(file, 800, 0.7);
             imagesData.push(compressed);
         } catch (err) {
+            reportError('rs-images', 'Failed to process one or more images.');
             showToast('Failed to process one or more images.', 'error');
             submitBtn.classList.remove('loading');
             return;
@@ -1334,7 +1609,7 @@ async function handleRSSubmit(e) {
         const changes = {
             title,
             category,
-            price: Number(price),
+            price: Number(priceStr),
             condition,
             desc,
             location,
@@ -1347,7 +1622,11 @@ async function handleRSSubmit(e) {
             changes.images = currentPost.images;
         }
 
-        updatePost(editingPostId, changes);
+        const updated = updatePost(editingPostId, changes);
+        if (!updated) {
+            submitBtn.classList.remove('loading');
+            return;
+        }
         showToast('Item updated successfully! 💰', 'success');
         editingPostId = null;
     } else {
@@ -1355,7 +1634,7 @@ async function handleRSSubmit(e) {
         const newItem = {
             title,
             category,
-            price: Number(price),
+            price: Number(priceStr),
             condition,
             desc,
             location,
@@ -1433,6 +1712,42 @@ function setupSearch() {
             updateEmptyStates();
         });
     }
+}
+
+// ============ SORT HANDLERS ============
+
+function setupSort() {
+    const lfSort = document.getElementById('lf-sort');
+    if (lfSort) {
+        lfSort.addEventListener('change', (e) => {
+            state.lfSort = e.target.value;
+            renderLostFound();
+            updateEmptyStates();
+        });
+    }
+
+    const rsSort = document.getElementById('rs-sort');
+    if (rsSort) {
+        rsSort.addEventListener('change', (e) => {
+            state.rsSort = e.target.value;
+            renderResell();
+            updateEmptyStates();
+        });
+    }
+}
+
+// ============ CLEAR FILTERS HANDLERS ============
+
+function setupClearFilters() {
+    const lfClearBtn = document.getElementById('lf-clear-filters');
+    const lfEmptyClearBtn = document.getElementById('lf-empty-clear-btn');
+    if (lfClearBtn) lfClearBtn.addEventListener('click', clearLFFilters);
+    if (lfEmptyClearBtn) lfEmptyClearBtn.addEventListener('click', clearLFFilters);
+
+    const rsClearBtn = document.getElementById('rs-clear-filters');
+    const rsEmptyClearBtn = document.getElementById('rs-empty-clear-btn');
+    if (rsClearBtn) rsClearBtn.addEventListener('click', clearRSFilters);
+    if (rsEmptyClearBtn) rsEmptyClearBtn.addEventListener('click', clearRSFilters);
 }
 
 // ============ TAB SWITCHING ============
@@ -1570,8 +1885,12 @@ function init() {
     setupTabSwitching();
     setupFilterTabs();
     setupSearch();
+    setupSort();
+    setupClearFilters();
     setupModals();
     setupImagePreviews();
+    setupFormValidation('lf-form');
+    setupFormValidation('rs-form');
     
     // Initial render
     renderAll();

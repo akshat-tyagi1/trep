@@ -6,7 +6,7 @@
     <title>CampusConnect - Lost & Found + Resell</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%234f46e5'/><text y='.7em' x='50%' font-size='60' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='bold'>C</text></svg>">
 </head>
 <body>
     <!-- Header -->
@@ -19,10 +19,6 @@
                 <button class="nav-btn active" data-tab="lostfound">Lost &amp; Found</button>
                 <button class="nav-btn" data-tab="resell">Resell Market</button>
             </nav>
-            <div class="header-actions">
-                <button type="button" class="btn btn-primary post-btn" id="lf-post-btn-header" style="display:none" data-for="lf">+ Post Item</button>
-                <button type="button" class="btn btn-primary post-btn" id="rs-post-btn-header" style="display:none" data-for="rs">+ List Item</button>
-            </div>
         </div>
     </header>
 
@@ -58,12 +54,18 @@
             <div class="filter-row">
                 <div class="filter-tabs">
                     <button class="filter-btn active" data-filter="all">All</button>
-                    <button class="filter-btn" data-filter="lost">😭 Lost</button>
-                    <button class="filter-btn" data-filter="found">🎉 Found</button>
+                    <button class="filter-btn" data-filter="lost">Lost</button>
+                    <button class="filter-btn" data-filter="found">Found</button>
                 </div>
                 <button type="button" class="btn-clear-filters" id="lf-clear-filters" style="display: none;">
-                    ✕ Clear filters
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    Clear filters
                 </button>
+            </div>
+
+            <!-- Results Count Bar -->
+            <div class="results-bar">
+                <span class="results-count" id="lf-count"></span>
             </div>
 
             <!-- Items Grid -->
@@ -73,27 +75,30 @@
 
             <!-- Empty State Container -->
             <div class="empty-state" id="lf-empty" style="display: none;">
-                <div class="empty-icon" id="lf-empty-icon">📭</div>
-                <h3 id="lf-empty-title">No items yet!</h3>
+                <h3 id="lf-empty-title">No items yet</h3>
                 <p id="lf-empty-desc">Be the first to post a lost or found item.</p>
                 <button type="button" class="btn btn-secondary btn-sm clear-filters-btn" id="lf-empty-clear-btn" style="display:none; margin-top: 1rem;">
-                    ✕ Clear filters
+                    Clear filters
                 </button>
             </div>
 
             <!-- Post / Edit Item Modal -->
             <div class="modal form-modal" id="lf-modal">
                 <div class="modal-content form-modal-content">
-                    <button type="button" class="modal-close" id="lf-modal-close" aria-label="Close modal">&times;</button>
-                    <div class="card form-card" id="lf-form-card">
-                        <h3 id="lf-form-title">📝 Post New Item</h3>
-                        <form id="lf-form" class="item-form" novalidate>
+                    <div class="modal-header">
+                        <h3 id="lf-form-title">Post New Item</h3>
+                        <button type="button" class="modal-close" id="lf-modal-close" aria-label="Close modal">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        </button>
+                    </div>
+                    <form id="lf-form" class="item-form modal-form-flex" novalidate>
+                        <div class="modal-body">
                             <div class="form-row">
                                 <label for="lf-type">Type: *</label>
                                 <select id="lf-type" name="type">
-                                    <option value="">Select...</option>
-                                    <option value="lost">😭 LOST - I lost this</option>
-                                    <option value="found">🎉 FOUND - I found this</option>
+                                    <option value="">Select type...</option>
+                                    <option value="lost">Lost - I lost this</option>
+                                    <option value="found">Found - I found this</option>
                                 </select>
                                 <span class="field-error" id="err-lf-type"></span>
                             </div>
@@ -122,23 +127,27 @@
                                 <input type="text" id="lf-contact" name="contact" placeholder="How can someone reach you?">
                                 <span class="field-error" id="err-lf-contact"></span>
                             </div>
-                            <div class="form-row">
-                                <label for="lf-image">Upload Photo (Optional)</label>
-                                <input type="file" id="lf-image" name="image" accept="image/*">
-                                <small class="form-hint">Max 5MB. Auto-compressed before saving.</small>
+                            <div class="form-row upload-row">
+                                <label>Upload Photo (Optional)</label>
+                                <div class="file-upload-zone" id="lf-upload-zone" tabindex="0" role="button" aria-label="Upload photo">
+                                    <input type="file" id="lf-image" name="image" accept="image/jpeg,image/png,image/webp" style="display:none;">
+                                    <div class="upload-zone-content">
+                                        <svg class="upload-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                        <span class="upload-zone-text"><strong>Click to upload</strong> photo</span>
+                                        <span class="upload-zone-hint">JPG, PNG, or WebP (max 5MB)</span>
+                                    </div>
+                                </div>
                                 <span class="field-error" id="err-lf-image"></span>
                                 <div id="lf-image-preview" class="image-preview-container"></div>
                             </div>
-                            <div class="form-row checkbox-row">
-                                <input type="checkbox" id="lf-anonymous" name="anonymous">
-                                <label for="lf-anonymous">Post anonymously (hide my contact)</label>
-                            </div>
+                        </div>
+                        <div class="modal-footer">
                             <button type="submit" class="btn btn-primary btn-submit">
                                 <span class="btn-text">Post Item</span>
-                                <span class="btn-loader" style="display:none;">⏳ Posting...</span>
+                                <span class="btn-loader" style="display:none;">Posting...</span>
                             </button>
-                        </form>
-                    </div>
+                        </div>
+                    </form>
                 </div>
             </div>
         </section>
@@ -159,6 +168,12 @@
                     <input type="text" id="rs-search" class="search-input" placeholder="Search items, description, location...">
                 </div>
                 <div class="controls-right">
+                    <div class="filter-box">
+                        <label for="rs-location-filter" class="sort-label">Location:</label>
+                        <select id="rs-location-filter" class="sort-select">
+                            <option value="all">All locations</option>
+                        </select>
+                    </div>
                     <div class="sort-box">
                         <label for="rs-sort" class="sort-label">Sort:</label>
                         <select id="rs-sort" class="sort-select">
@@ -175,16 +190,22 @@
             <div class="filter-row">
                 <div class="filter-tabs">
                     <button class="filter-btn active" data-filter="all">All</button>
-                    <button class="filter-btn" data-filter="books">📚 Books</button>
-                    <button class="filter-btn" data-filter="electronics">💻 Electronics</button>
-                    <button class="filter-btn" data-filter="furniture">🪑 Furniture</button>
-                    <button class="filter-btn" data-filter="clothing">👕 Clothing</button>
-                    <button class="filter-btn" data-filter="vehicles">🛵 Vehicles</button>
-                    <button class="filter-btn" data-filter="other">📦 Other</button>
+                    <button class="filter-btn" data-filter="books">Books</button>
+                    <button class="filter-btn" data-filter="electronics">Electronics</button>
+                    <button class="filter-btn" data-filter="furniture">Furniture</button>
+                    <button class="filter-btn" data-filter="clothing">Clothing</button>
+                    <button class="filter-btn" data-filter="vehicles">Vehicles</button>
+                    <button class="filter-btn" data-filter="other">Other</button>
                 </div>
                 <button type="button" class="btn-clear-filters" id="rs-clear-filters" style="display: none;">
-                    ✕ Clear filters
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    Clear filters
                 </button>
+            </div>
+
+            <!-- Results Count Bar -->
+            <div class="results-bar">
+                <span class="results-count" id="rs-count"></span>
             </div>
 
             <!-- Items Grid -->
@@ -194,21 +215,24 @@
 
             <!-- Empty State Container -->
             <div class="empty-state" id="rs-empty" style="display: none;">
-                <div class="empty-icon" id="rs-empty-icon">🛒</div>
-                <h3 id="rs-empty-title">Nothing for sale yet!</h3>
-                <p id="rs-empty-desc">List your first item and make some cash 💸</p>
+                <h3 id="rs-empty-title">Nothing for sale yet</h3>
+                <p id="rs-empty-desc">List your first item and connect with buyers on campus.</p>
                 <button type="button" class="btn btn-secondary btn-sm clear-filters-btn" id="rs-empty-clear-btn" style="display:none; margin-top: 1rem;">
-                    ✕ Clear filters
+                    Clear filters
                 </button>
             </div>
 
             <!-- Post / Edit Item Modal -->
             <div class="modal form-modal" id="rs-modal">
                 <div class="modal-content form-modal-content">
-                    <button type="button" class="modal-close" id="rs-modal-close" aria-label="Close modal">&times;</button>
-                    <div class="card form-card" id="rs-form-card">
-                        <h3 id="rs-form-title">📝 List Item for Sale</h3>
-                        <form id="rs-form" class="item-form" novalidate>
+                    <div class="modal-header">
+                        <h3 id="rs-form-title">List Item for Sale</h3>
+                        <button type="button" class="modal-close" id="rs-modal-close" aria-label="Close modal">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        </button>
+                    </div>
+                    <form id="rs-form" class="item-form modal-form-flex" novalidate>
+                        <div class="modal-body">
                             <div class="form-row">
                                 <label for="rs-title">Item Name *</label>
                                 <input type="text" id="rs-title" name="title" placeholder="e.g., Calculus Textbook, Gaming Laptop, Mini Fridge">
@@ -218,12 +242,12 @@
                                 <label for="rs-category">Category *</label>
                                 <select id="rs-category" name="category">
                                     <option value="">Select Category</option>
-                                    <option value="books">📚 Books & Notes</option>
-                                    <option value="electronics">💻 Electronics</option>
-                                    <option value="furniture">🪑 Furniture</option>
-                                    <option value="clothing">👕 Clothing</option>
-                                    <option value="vehicles">🛵 Vehicles/Bikes</option>
-                                    <option value="other">📦 Other</option>
+                                    <option value="books">Books &amp; Notes</option>
+                                    <option value="electronics">Electronics</option>
+                                    <option value="furniture">Furniture</option>
+                                    <option value="clothing">Clothing</option>
+                                    <option value="vehicles">Vehicles &amp; Bikes</option>
+                                    <option value="other">Other</option>
                                 </select>
                                 <span class="field-error" id="err-rs-category"></span>
                             </div>
@@ -236,10 +260,10 @@
                                 <label for="rs-condition">Condition *</label>
                                 <select id="rs-condition" name="condition">
                                     <option value="">Select Condition</option>
-                                    <option value="new">✨ Like New</option>
-                                    <option value="good">👍 Good</option>
-                                    <option value="fair">😐 Fair</option>
-                                    <option value="poor">😅 Needs Work</option>
+                                    <option value="new">Like New</option>
+                                    <option value="good">Good</option>
+                                    <option value="fair">Fair</option>
+                                    <option value="poor">Needs Work</option>
                                 </select>
                                 <span class="field-error" id="err-rs-condition"></span>
                             </div>
@@ -258,23 +282,31 @@
                                 <input type="text" id="rs-contact" name="contact" placeholder="Phone / Email / Instagram handle">
                                 <span class="field-error" id="err-rs-contact"></span>
                             </div>
-                            <div class="form-row">
-                                <label for="rs-images">Upload Photos (Max 4) *</label>
-                                <input type="file" id="rs-images" name="images" accept="image/*" multiple>
-                                <small class="form-hint">Max 5MB each. Up to 4 photos allowed (auto-compressed).</small>
+                            <div class="form-row upload-row">
+                                <label>Upload Photos (Max 4) *</label>
+                                <div class="file-upload-zone" id="rs-upload-zone" tabindex="0" role="button" aria-label="Upload photos">
+                                    <input type="file" id="rs-images" name="images" accept="image/jpeg,image/png,image/webp" multiple style="display:none;">
+                                    <div class="upload-zone-content">
+                                        <svg class="upload-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                        <span class="upload-zone-text"><strong>Click to upload photos</strong> (up to 4)</span>
+                                        <span class="upload-zone-hint">JPG, PNG, or WebP (max 5MB each)</span>
+                                    </div>
+                                </div>
                                 <span class="field-error" id="err-rs-images"></span>
                                 <div id="rs-images-preview" class="image-preview-container"></div>
                             </div>
                             <div class="form-row checkbox-row">
                                 <input type="checkbox" id="rs-negotiable" name="negotiable">
-                                <label for="rs-negotiable">Price is negotiable 💬</label>
+                                <label for="rs-negotiable">Price is negotiable</label>
                             </div>
+                        </div>
+                        <div class="modal-footer">
                             <button type="submit" class="btn btn-primary btn-submit">
                                 <span class="btn-text">List for Sale</span>
-                                <span class="btn-loader" style="display:none;">⏳ Listing...</span>
+                                <span class="btn-loader" style="display:none;">Listing...</span>
                             </button>
-                        </form>
-                    </div>
+                        </div>
+                    </form>
                 </div>
             </div>
         </section>
@@ -283,7 +315,9 @@
     <!-- Item Detail Modal -->
     <div class="modal detail-modal" id="detail-modal">
         <div class="modal-content detail-modal-content">
-            <button type="button" class="modal-close" onclick="closeModal()" aria-label="Close modal">&times;</button>
+            <button type="button" class="modal-close" onclick="closeModal()" aria-label="Close modal">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
             <div id="detail-content" class="detail-container">
                 <!-- Dynamically rendered by JS -->
             </div>
@@ -293,14 +327,16 @@
     <!-- Footer -->
     <footer class="main-footer">
         <div class="footer-content">
-            <p>CampusConnect &mdash; Data stored in your browser &nbsp;·&nbsp; <a href="#" onclick="clearAllData()">Clear data</a></p>
+            <p>CampusConnect &mdash; Campus marketplace for students</p>
         </div>
     </footer>
 
-    <!-- Image Preview Modal -->
-    <div class="modal" id="image-modal">
-        <div class="modal-content">
-            <button type="button" class="modal-close" onclick="closeModal()">&times;</button>
+    <!-- Image Lightbox Modal -->
+    <div class="modal lightbox-modal" id="image-modal">
+        <div class="modal-content lightbox-content">
+            <button type="button" class="modal-close lightbox-close" onclick="closeModal()" aria-label="Close lightbox">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
             <img id="modal-img" src="" alt="Full size image">
         </div>
     </div>

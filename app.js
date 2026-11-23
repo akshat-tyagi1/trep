@@ -6,6 +6,8 @@
 // ============ STORAGE & DATA LAYER ============
 const STORAGE_KEY = 'campusconnect_posts';
 const SEED_FLAG_KEY = 'campusconnect_seeded';
+const SEED_VERSION_KEY = 'campusconnect_seed_version';
+const SEED_VERSION = 2;
 const MY_POST_IDS_KEY = 'myPostIds';
 
 // Tracking post currently being edited
@@ -71,22 +73,6 @@ function isMyPost(id) {
     return getMyPostIds().includes(id);
 }
 
-// Generate simple SVG placeholder data URLs for realistic previews & seeds
-function generatePlaceholderSvg(emoji, label, bg1, bg2) {
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
-        <defs>
-            <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="${bg1}"/>
-                <stop offset="100%" stop-color="${bg2}"/>
-            </linearGradient>
-        </defs>
-        <rect width="600" height="400" fill="url(#g)"/>
-        <text x="300" y="180" font-size="96" text-anchor="middle" dominant-baseline="middle">${emoji}</text>
-        <text x="300" y="270" font-family="'Comic Neue', cursive, sans-serif" font-weight="bold" font-size="26" fill="#ffffff" text-anchor="middle" opacity="0.95">${label}</text>
-    </svg>`;
-    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-}
-
 // Seed listings for first visit
 function getSeedPosts() {
     const now = Date.now();
@@ -105,7 +91,7 @@ function getSeedPosts() {
             contact: 'shivam.math@campus.edu',
             anonymous: false,
             status: 'active',
-            image: generatePlaceholderSvg('🔢', 'Casio fx-991EX', '#4f46e5', '#818cf8'),
+            image: 'images/calculator.jpg',
             createdAt: new Date(now - 2 * day).toISOString()
         },
         {
@@ -119,7 +105,7 @@ function getSeedPosts() {
             contact: 'librarian-desk@campus.edu',
             anonymous: false,
             status: 'active',
-            image: generatePlaceholderSvg('🪪', 'Student ID Card', '#059669', '#34d399'),
+            image: 'images/id-card.jpg',
             createdAt: new Date(now - 1 * day).toISOString()
         },
         {
@@ -133,7 +119,7 @@ function getSeedPosts() {
             contact: 'Phone: 9876543210',
             anonymous: false,
             status: 'active',
-            image: generatePlaceholderSvg('🍶', 'Milton Water Bottle', '#2563eb', '#60a5fa'),
+            image: 'images/water-bottle.jpg',
             createdAt: new Date(now - 3 * day).toISOString()
         },
         {
@@ -147,7 +133,7 @@ function getSeedPosts() {
             contact: 'amit.cse@campus.edu',
             anonymous: false,
             status: 'active',
-            image: generatePlaceholderSvg('🎧', 'Boat Rockerz Headphones', '#d97706', '#fbbf24'),
+            image: 'images/headphones.jpg',
             createdAt: new Date(now - 4 * day).toISOString()
         },
         {
@@ -161,7 +147,7 @@ function getSeedPosts() {
             contact: 'Block B Room 218',
             anonymous: true,
             status: 'active',
-            image: generatePlaceholderSvg('🔑', 'Room Keys + Keychain', '#dc2626', '#f87171'),
+            image: 'images/keys.jpg',
             createdAt: new Date(now - 5 * day).toISOString()
         },
 
@@ -179,8 +165,8 @@ function getSeedPosts() {
             negotiable: true,
             status: 'active',
             images: [
-                generatePlaceholderSvg('🧊', 'Mini Fridge 50L', '#0891b2', '#22d3ee'),
-                generatePlaceholderSvg('❄️', 'Freezer Compartment', '#0284c7', '#38bdf8')
+                'images/fridge.jpg',
+                'images/fridge-freezer.jpg'
             ],
             createdAt: new Date(now - 1 * day).toISOString()
         },
@@ -196,7 +182,7 @@ function getSeedPosts() {
             contact: 'rahul.t@campus.edu',
             negotiable: false,
             status: 'active',
-            images: [generatePlaceholderSvg('📚', 'Thomas Calculus 14th Ed', '#7c3aed', '#a78bfa')],
+            images: ['images/textbook.jpg'],
             createdAt: new Date(now - 2 * day).toISOString()
         },
         {
@@ -211,7 +197,7 @@ function getSeedPosts() {
             contact: 'Call: 9822334455',
             negotiable: true,
             status: 'active',
-            images: [generatePlaceholderSvg('📱', 'TI-84 Plus Graphing Calc', '#4338ca', '#6366f1')],
+            images: ['images/graphing-calculator.jpg'],
             createdAt: new Date(now - 3 * day).toISOString()
         },
         {
@@ -226,7 +212,7 @@ function getSeedPosts() {
             contact: 'varun.me@campus.edu',
             negotiable: true,
             status: 'active',
-            images: [generatePlaceholderSvg('🪑', 'Ergonomic Study Chair', '#059669', '#10b981')],
+            images: ['images/study-chair.jpg'],
             createdAt: new Date(now - 4 * day).toISOString()
         },
         {
@@ -241,7 +227,7 @@ function getSeedPosts() {
             contact: 'Call: 9711223344',
             negotiable: true,
             status: 'active',
-            images: [generatePlaceholderSvg('🚲', '21-Speed Mountain Bike', '#ea580c', '#fb923c')],
+            images: ['images/bicycle.jpg'],
             createdAt: new Date(now - 5 * day).toISOString()
         }
     ];
@@ -250,12 +236,38 @@ function getSeedPosts() {
 function initStorage() {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        const seeded = localStorage.getItem(SEED_FLAG_KEY);
-        
-        // On first visit only when storage is empty
-        if (!raw && !seeded) {
+        const storedVersion = parseInt(localStorage.getItem(SEED_VERSION_KEY) || '0', 10);
+
+        let parsed = null;
+        let isMissingOrEmpty = false;
+
+        if (!raw) {
+            isMissingOrEmpty = true;
+        } else {
+            try {
+                parsed = JSON.parse(raw);
+                if (!Array.isArray(parsed) || parsed.length === 0) {
+                    isMissingOrEmpty = true;
+                }
+            } catch (e) {
+                isMissingOrEmpty = true;
+            }
+        }
+
+        if (isMissingOrEmpty) {
             const seedPosts = getSeedPosts();
             localStorage.setItem(STORAGE_KEY, JSON.stringify(seedPosts));
+            localStorage.setItem(SEED_VERSION_KEY, String(SEED_VERSION));
+            localStorage.setItem(SEED_FLAG_KEY, 'true');
+        } else if (storedVersion !== SEED_VERSION) {
+            // Version differs: replace old seed posts with new seed data, keep user posts
+            const currentPosts = parsed || [];
+            const myIds = getMyPostIds();
+            const userPosts = currentPosts.filter(p => myIds.includes(p.id) || (p.id && !p.id.startsWith('seed-')));
+            const newSeeds = getSeedPosts();
+            const mergedPosts = [...userPosts, ...newSeeds];
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedPosts));
+            localStorage.setItem(SEED_VERSION_KEY, String(SEED_VERSION));
             localStorage.setItem(SEED_FLAG_KEY, 'true');
         }
     } catch (e) {
@@ -649,14 +661,12 @@ function updateEmptyStates() {
             lfEmpty.style.display = 'block';
             if (lfTotalCount === 0) {
                 // "Nothing posted yet" state
-                if (lfEmptyIcon) lfEmptyIcon.textContent = '📭';
-                if (lfEmptyTitle) lfEmptyTitle.textContent = 'No items yet!';
+                if (lfEmptyTitle) lfEmptyTitle.textContent = 'No items yet';
                 if (lfEmptyDesc) lfEmptyDesc.textContent = 'Be the first to post a lost or found item.';
                 if (lfEmptyClearBtn) lfEmptyClearBtn.style.display = 'none';
             } else {
                 // "No results for your search" state
-                if (lfEmptyIcon) lfEmptyIcon.textContent = '🔍';
-                if (lfEmptyTitle) lfEmptyTitle.textContent = 'No results for your search';
+                if (lfEmptyTitle) lfEmptyTitle.textContent = 'No results found';
                 if (lfEmptyDesc) lfEmptyDesc.textContent = 'We couldn\'t find any items matching your criteria. Try adjusting your search or clearing filters.';
                 if (lfEmptyClearBtn) lfEmptyClearBtn.style.display = 'inline-block';
             }
@@ -669,7 +679,6 @@ function updateEmptyStates() {
     // --- Resell ---
     const rsGrid = document.getElementById('rs-grid');
     const rsEmpty = document.getElementById('rs-empty');
-    const rsEmptyIcon = document.getElementById('rs-empty-icon');
     const rsEmptyTitle = document.getElementById('rs-empty-title');
     const rsEmptyDesc = document.getElementById('rs-empty-desc');
     const rsEmptyClearBtn = document.getElementById('rs-empty-clear-btn');
@@ -690,14 +699,12 @@ function updateEmptyStates() {
             rsEmpty.style.display = 'block';
             if (rsTotalCount === 0) {
                 // "Nothing posted yet" state
-                if (rsEmptyIcon) rsEmptyIcon.textContent = '🛒';
-                if (rsEmptyTitle) rsEmptyTitle.textContent = 'Nothing for sale yet!';
-                if (rsEmptyDesc) rsEmptyDesc.textContent = 'List your first item and make some cash 💸';
+                if (rsEmptyTitle) rsEmptyTitle.textContent = 'Nothing for sale yet';
+                if (rsEmptyDesc) rsEmptyDesc.textContent = 'List your first item and connect with buyers on campus.';
                 if (rsEmptyClearBtn) rsEmptyClearBtn.style.display = 'none';
             } else {
                 // "No results for your search" state
-                if (rsEmptyIcon) rsEmptyIcon.textContent = '🔍';
-                if (rsEmptyTitle) rsEmptyTitle.textContent = 'No results for your search';
+                if (rsEmptyTitle) rsEmptyTitle.textContent = 'No results found';
                 if (rsEmptyDesc) rsEmptyDesc.textContent = 'We couldn\'t find any listings matching your criteria. Try adjusting your search or clearing filters.';
                 if (rsEmptyClearBtn) rsEmptyClearBtn.style.display = 'inline-block';
             }
@@ -712,6 +719,11 @@ function renderLostFound() {
     const grid = document.getElementById('lf-grid');
     const items = getFilteredLFItems();
     
+    const countEl = document.getElementById('lf-count');
+    if (countEl) {
+        countEl.textContent = `${items.length} ${items.length === 1 ? 'item' : 'items'}`;
+    }
+
     grid.innerHTML = items.map(item => createLFCard(item)).join('');
     
     // Add click handlers for cards
@@ -728,6 +740,11 @@ function renderResell() {
     const grid = document.getElementById('rs-grid');
     const items = getFilteredRSItems();
     
+    const countEl = document.getElementById('rs-count');
+    if (countEl) {
+        countEl.textContent = `${items.length} ${items.length === 1 ? 'item' : 'items'}`;
+    }
+
     grid.innerHTML = items.map(item => createRSCard(item)).join('');
     
     // Add click handlers for cards
@@ -740,19 +757,19 @@ function renderResell() {
     });
 }
 
+function getCardImageHtml(src, alt) {
+    const placeholder = `<div class="item-image-placeholder"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>`;
+    if (!src) return placeholder;
+    return `<img class="item-image" src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" loading="lazy" onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='flex';">${placeholder.replace('class="item-image-placeholder"', 'class="item-image-placeholder" style="display:none;"')}`;
+}
+
 function createLFCard(item) {
     const typeClass = item.type === 'lost' ? 'lost' : 'found';
     const typeLabel = item.type === 'lost' ? 'Lost' : 'Found';
     const isReturned = item.status === 'returned';
     
-    const hasImage = item.image && item.image.length > 0;
-    const imageHtml = hasImage 
-        ? `<img class="item-image" src="${item.image}" alt="${escapeHtml(item.title)}">`
-        : `<div class="item-image-placeholder">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-           </div>`;
-    
-    const statusBadge = isReturned ? '<span class="item-badge returned">Returned</span>' : '';
+    const imageHtml = getCardImageHtml(item.image, item.title);
+    const statusBadge = isReturned ? '<span class="item-badge card-badge-status returned">Returned</span>' : '';
     const markedClass = isReturned ? ' is-marked marked-returned' : '';
     
     return `
@@ -760,17 +777,16 @@ function createLFCard(item) {
             <div class="item-image-wrap">
                 ${imageHtml}
                 <span class="item-badge card-badge ${typeClass}">${typeLabel}</span>
-                ${statusBadge ? `<span class="item-badge card-badge-status returned">Returned</span>` : ''}
+                ${statusBadge}
             </div>
             <div class="item-content">
                 <h3 class="item-title">${escapeHtml(item.title)}</h3>
-                <div class="item-meta">
-                    <span class="meta-inline">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                        ${escapeHtml(item.location)}
-                    </span>
-                    <span class="meta-dot">·</span>
-                    <span class="item-date">${formatRelativeTime(item.createdAt)}</span>
+                <div class="card-meta-line">
+                    <span class="item-date">Posted ${formatRelativeTime(item.createdAt)}</span>
+                </div>
+                <div class="card-meta-line location-line">
+                    <svg class="meta-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    <span>${escapeHtml(item.location)}</span>
                 </div>
                 <p class="item-desc">${escapeHtml(item.desc)}</p>
             </div>
@@ -788,19 +804,9 @@ function createRSCard(item) {
     
     const isSold = item.status === 'sold';
     const categoryName = item.category ? (item.category.charAt(0).toUpperCase() + item.category.slice(1)) : '';
+    const firstImage = (item.images && item.images.length > 0) ? item.images[0] : null;
+    const imageHtml = getCardImageHtml(firstImage, item.title);
     
-    // Show first image if multiple
-    const firstImage = item.images && item.images.length > 0 ? item.images[0] : null;
-    const hasImage = firstImage && firstImage.length > 0;
-    const imageHtml = hasImage
-        ? `<img class="item-image" src="${firstImage}" alt="${escapeHtml(item.title)}">`
-        : `<div class="item-image-placeholder">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-           </div>`;
-    
-    const negotiableBadge = item.negotiable 
-        ? `<span class="item-badge negotiable">Negotiable</span>` 
-        : '';
     const soldBadge = isSold ? '<span class="item-badge card-badge-status sold">Sold</span>' : '';
     const markedClass = isSold ? ' is-marked marked-sold' : '';
     
@@ -811,23 +817,20 @@ function createRSCard(item) {
                 ${soldBadge}
             </div>
             <div class="item-content">
+                <div class="card-category-label">${escapeHtml(categoryName)}</div>
                 <h3 class="item-title">${escapeHtml(item.title)}</h3>
                 <div class="item-price-row">
                     <span class="item-price">${formatPrice(item.price)}</span>
-                    ${negotiableBadge}
+                    ${item.negotiable ? '<span class="item-negotiable-text">Negotiable</span>' : ''}
                 </div>
-                <div class="item-meta">
-                    <span class="meta-inline">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-                        ${conditionLabels[item.condition] || item.condition}
-                    </span>
-                    <span class="meta-dot">·</span>
-                    <span class="meta-inline">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                        ${escapeHtml(item.location)}
-                    </span>
+                <div class="card-meta-line">
+                    <span>${escapeHtml(conditionLabels[item.condition] || item.condition)}</span>
                     <span class="meta-dot">·</span>
                     <span class="item-date">${formatRelativeTime(item.createdAt)}</span>
+                </div>
+                <div class="card-meta-line location-line">
+                    <svg class="meta-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    <span>${escapeHtml(item.location)}</span>
                 </div>
                 <p class="item-desc">${escapeHtml(item.desc)}</p>
             </div>
@@ -860,150 +863,163 @@ function openDetailModal(item) {
 
     // Condition labels
     const conditionLabels = {
-        new: '✨ Like New',
-        good: '👍 Good',
-        fair: '😐 Fair',
-        poor: '😅 Needs Work'
+        new: 'Like New',
+        good: 'Good',
+        fair: 'Fair',
+        poor: 'Needs Work'
     };
 
     // Category labels
-    const categoryIcons = {
-        books: '📚 Books',
-        electronics: '💻 Electronics',
-        furniture: '🪑 Furniture',
-        clothing: '👕 Clothing',
-        vehicles: '🛵 Vehicles',
-        other: '📦 Other'
+    const categoryLabels = {
+        books: 'Books',
+        electronics: 'Electronics',
+        furniture: 'Furniture',
+        clothing: 'Clothing',
+        vehicles: 'Vehicles',
+        other: 'Other'
     };
 
-    // Build Badges
-    let badgesHtml = '';
+    // 1. Status pill
+    let statusPillHtml = '';
     if (!isResell) {
-        badgesHtml += `<span class="item-badge ${item.type === 'lost' ? 'lost' : 'found'}">${item.type === 'lost' ? '😭 LOST' : '🎉 FOUND'}</span>`;
-        if (isReturned) badgesHtml += ` <span class="item-badge returned">Returned</span>`;
+        statusPillHtml = `<span class="item-badge ${item.type === 'lost' ? 'lost' : 'found'}">${item.type === 'lost' ? 'Lost' : 'Found'}</span>`;
+        if (isReturned) statusPillHtml += ` <span class="item-badge returned">Returned</span>`;
     } else {
-        badgesHtml += `<span class="item-badge category">${categoryIcons[item.category] || item.category}</span>`;
-        if (item.negotiable) badgesHtml += ` <span class="item-badge negotiable">Negotiable 💬</span>`;
-        if (isSold) badgesHtml += ` <span class="item-badge sold">Sold</span>`;
+        const catText = categoryLabels[item.category] || (item.category ? (item.category.charAt(0).toUpperCase() + item.category.slice(1)) : 'General');
+        statusPillHtml = `<span class="item-badge category-pill">${escapeHtml(catText)}</span>`;
+        if (isSold) statusPillHtml += ` <span class="item-badge sold">Sold</span>`;
     }
 
-    // Build Gallery HTML
+    // 2. Gallery HTML (Left Column)
     let galleryHtml = '';
     if (images.length > 0) {
         let thumbsHtml = '';
         if (images.length > 1) {
             thumbsHtml = `<div class="detail-gallery-thumbs">
                 ${images.map((imgSrc, idx) => `
-                    <div class="detail-thumb ${idx === 0 ? 'active' : ''}" data-src="${imgSrc}">
-                        <img src="${imgSrc}" alt="Thumbnail ${idx + 1}">
+                    <div class="detail-thumb ${idx === 0 ? 'active' : ''}" data-src="${escapeHtml(imgSrc)}">
+                        <img src="${escapeHtml(imgSrc)}" alt="Thumbnail ${idx + 1}">
                     </div>
                 `).join('')}
             </div>`;
         }
 
         galleryHtml = `
-            <div class="detail-gallery">
+            <div class="detail-gallery-col">
                 <div class="detail-main-img-wrapper">
-                    <img id="detail-main-img" class="detail-gallery-main" src="${defaultImg}" alt="${escapeHtml(item.title)}">
+                    <img id="detail-main-img" class="detail-gallery-main" src="${escapeHtml(defaultImg)}" alt="${escapeHtml(item.title)}" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\'detail-placeholder\'><svg width=\'48\' height=\'48\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'1.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><path d=\'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z\'/></svg></div>';">
                 </div>
                 ${thumbsHtml}
             </div>
         `;
     } else {
         galleryHtml = `
-            <div class="detail-gallery-placeholder">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                <span>No photos uploaded</span>
+            <div class="detail-gallery-col">
+                <div class="detail-placeholder">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                </div>
             </div>
         `;
     }
 
-    // Price & Condition HTML for Resell
-    let resellInfoHtml = '';
+    // 3. Price row for resell
+    let priceRowHtml = '';
     if (isResell) {
-        resellInfoHtml = `
-            <div class="detail-resell-highlight">
-                <div class="detail-price-box">
-                    <span class="detail-price-label">Price</span>
-                    <span class="detail-price-val">${formatPrice(item.price)}</span>
-                </div>
-                <div class="detail-condition-box">
-                    <span class="detail-condition-label">Condition</span>
-                    <span class="detail-condition-val">${conditionLabels[item.condition] || item.condition}</span>
-                </div>
+        priceRowHtml = `
+            <div class="detail-price-row">
+                <span class="detail-price">${formatPrice(item.price)}</span>
+                ${item.negotiable ? '<span class="detail-negotiable">Negotiable</span>' : ''}
             </div>
         `;
     }
 
-    // Contact button / display HTML
+    // 4. Simple key-value list with thin dividers and no icons or boxes
+    let kvListHtml = `
+        <div class="detail-kv-list">
+            <div class="detail-kv-item">
+                <span class="kv-label">Location</span>
+                <span class="kv-value">${escapeHtml(item.location)}</span>
+            </div>
+            <div class="detail-kv-item">
+                <span class="kv-label">Date</span>
+                <span class="kv-value">${formatDate(item.date || item.createdAt)}</span>
+            </div>
+            ${isResell ? `
+            <div class="detail-kv-item">
+                <span class="kv-label">Condition</span>
+                <span class="kv-value">${escapeHtml(conditionLabels[item.condition] || item.condition)}</span>
+            </div>` : ''}
+            <div class="detail-kv-item">
+                <span class="kv-label">Posted</span>
+                <span class="kv-value">${formatRelativeTime(item.createdAt)}</span>
+            </div>
+        </div>
+    `;
+
+    // 5. About this item
+    let aboutSectionHtml = `
+        <div class="detail-desc-section">
+            <h4 class="detail-about-heading">About this item</h4>
+            <p class="detail-about-text">${escapeHtml(item.desc)}</p>
+        </div>
+    `;
+
+    // 6. Contact button / display HTML
     let contactSectionHtml = '';
     if (item.anonymous) {
         contactSectionHtml = `
-            <div class="detail-contact-box">
-                <span class="contact-hidden-label">🙈 Contact hidden by poster</span>
+            <div class="detail-contact-section">
+                <p class="detail-contact-hidden">Contact hidden by poster</p>
             </div>
         `;
     } else {
         contactSectionHtml = `
-            <div class="detail-contact-box">
-                <button type="button" class="btn btn-primary" id="detail-show-contact-btn">📞 Show contact</button>
-                <div id="detail-contact-val" class="detail-contact-revealed" style="display: none;">
-                    <span class="contact-label">Contact:</span>
-                    <strong class="contact-text">${escapeHtml(item.contact)}</strong>
+            <div class="detail-contact-section">
+                <button type="button" class="btn btn-primary btn-contact-full" id="detail-show-contact-btn">Show contact</button>
+                <div id="detail-contact-revealed" class="detail-contact-revealed" style="display: none;">
+                    <span class="detail-contact-text" id="detail-contact-text">${escapeHtml(item.contact)}</span>
+                    <button type="button" class="btn btn-secondary btn-sm" id="detail-copy-contact-btn">Copy</button>
                 </div>
             </div>
         `;
     }
 
-    // Owner Actions HTML (Only for posts in myPostIds)
+    // 7. Owner actions (Edit, Delete, Mark as sold/returned)
     let ownerActionsHtml = '';
     if (isOwner) {
         let statusBtnText = '';
         if (isResell) {
-            statusBtnText = isSold ? '✅ Mark as Available' : '🏷️ Mark as Sold';
+            statusBtnText = isSold ? 'Mark as available' : 'Mark as sold';
         } else {
-            statusBtnText = isReturned ? '🔄 Mark as Active' : '🎉 Mark as Returned';
+            statusBtnText = isReturned ? 'Mark as active' : 'Mark as returned';
         }
 
         ownerActionsHtml = `
-            <div class="detail-owner-panel">
-                <h4 class="owner-panel-title">👤 Poster Controls (You own this post)</h4>
-                <div class="owner-panel-btns">
-                    <button type="button" class="btn btn-secondary" id="detail-status-btn">${statusBtnText}</button>
-                    <button type="button" class="btn btn-secondary" id="detail-edit-btn">✏️ Edit</button>
-                    <button type="button" class="btn btn-danger" id="detail-delete-btn">🗑️ Delete</button>
-                </div>
+            <div class="detail-owner-actions">
+                <button type="button" class="btn btn-secondary btn-sm" id="detail-status-btn">${statusBtnText}</button>
+                <button type="button" class="btn btn-secondary btn-sm" id="detail-edit-btn">Edit</button>
+                <button type="button" class="btn btn-secondary btn-sm btn-delete-text" id="detail-delete-btn">Delete</button>
             </div>
         `;
     }
 
+    // Render 2 columns
     container.innerHTML = `
-        <div class="detail-header">
-            <div class="detail-badges">${badgesHtml}</div>
-            <h2 class="detail-title">${escapeHtml(item.title)}</h2>
-            <div class="detail-meta-row">
-                <span>📍 ${escapeHtml(item.location)}</span>
-                <span>📅 ${!isResell ? formatDate(item.date) : formatDate(item.createdAt)}</span>
-                <span class="detail-time-relative">🕒 Posted ${formatRelativeTime(item.createdAt)}</span>
+        <div class="detail-grid">
+            ${galleryHtml}
+            <div class="detail-info-col">
+                <div class="detail-top-badges">${statusPillHtml}</div>
+                <h2 class="detail-title">${escapeHtml(item.title)}</h2>
+                ${priceRowHtml}
+                ${kvListHtml}
+                ${aboutSectionHtml}
+                ${contactSectionHtml}
+                ${ownerActionsHtml}
             </div>
         </div>
-
-        ${galleryHtml}
-        ${resellInfoHtml}
-
-        <div class="detail-desc-section">
-            <h3>Description</h3>
-            <p class="detail-desc-text">${escapeHtml(item.desc)}</p>
-        </div>
-
-        <div class="detail-contact-section">
-            ${contactSectionHtml}
-        </div>
-
-        ${ownerActionsHtml}
     `;
 
-    // Hook up thumbnail switching
+    // Thumbnail switching
     container.querySelectorAll('.detail-thumb').forEach(thumb => {
         thumb.addEventListener('click', () => {
             const newSrc = thumb.dataset.src;
@@ -1014,19 +1030,33 @@ function openDetailModal(item) {
         });
     });
 
-    // Hook up show contact button
+    // Show contact & Copy handler
     const showContactBtn = container.querySelector('#detail-show-contact-btn');
-    const contactVal = container.querySelector('#detail-contact-val');
-    if (showContactBtn && contactVal) {
+    const contactRevealed = container.querySelector('#detail-contact-revealed');
+    if (showContactBtn && contactRevealed) {
         showContactBtn.addEventListener('click', () => {
             showContactBtn.style.display = 'none';
-            contactVal.style.display = 'flex';
+            contactRevealed.style.display = 'flex';
         });
     }
 
-    // Hook up Owner Actions
+    const copyBtn = container.querySelector('#detail-copy-contact-btn');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', () => {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(item.contact).then(() => {
+                    showToast('Contact copied to clipboard.', 'success');
+                }).catch(() => {
+                    showToast('Failed to copy contact.', 'error');
+                });
+            } else {
+                showToast('Contact: ' + item.contact, 'info');
+            }
+        });
+    }
+
+    // Owner actions handlers
     if (isOwner) {
-        // Toggle Status (Sold / Returned)
         const statusBtn = container.querySelector('#detail-status-btn');
         if (statusBtn) {
             statusBtn.addEventListener('click', () => {
@@ -1041,16 +1071,14 @@ function openDetailModal(item) {
                 loadData();
                 renderAll();
 
-                // Refresh the modal view with updated post
                 const updatedPost = getPosts().find(p => p.id === item.id);
                 if (updatedPost) {
                     openDetailModal(updatedPost);
                 }
-                showToast(newStatus === 'sold' ? 'Marked as Sold! 🎉' : (newStatus === 'returned' ? 'Marked as Returned! 🎉' : 'Status set to Active! 👍'), 'success');
+                showToast(newStatus === 'sold' ? 'Marked as sold.' : (newStatus === 'returned' ? 'Marked as returned.' : 'Listing marked as active.'), 'success');
             });
         }
 
-        // Delete post
         const deleteBtn = container.querySelector('#detail-delete-btn');
         if (deleteBtn) {
             deleteBtn.addEventListener('click', () => {
@@ -1060,12 +1088,11 @@ function openDetailModal(item) {
                     closeModal();
                     loadData();
                     renderAll();
-                    showToast('Listing deleted successfully! 🗑️', 'info');
+                    showToast('Listing deleted successfully.', 'info');
                 }
             });
         }
 
-        // Edit post (prefill and reuse form modal)
         const editBtn = container.querySelector('#detail-edit-btn');
         if (editBtn) {
             editBtn.addEventListener('click', () => {
@@ -1088,7 +1115,7 @@ function openEditForm(item) {
         // Lost & Found form
         const modal = document.getElementById('lf-modal');
         const form = document.getElementById('lf-form');
-        document.getElementById('lf-form-title').textContent = '✏️ Edit Item';
+        document.getElementById('lf-form-title').textContent = 'Edit Item';
         form.querySelector('.btn-text').textContent = 'Save Changes';
 
         document.getElementById('lf-type').value = item.type;
@@ -1116,7 +1143,7 @@ function openEditForm(item) {
         // Resell form
         const modal = document.getElementById('rs-modal');
         const form = document.getElementById('rs-form');
-        document.getElementById('rs-form-title').textContent = '✏️ Edit Item for Sale';
+        document.getElementById('rs-form-title').textContent = 'Edit Item for Sale';
         form.querySelector('.btn-text').textContent = 'Save Changes';
         document.getElementById('rs-images').required = false;
 
@@ -1154,13 +1181,13 @@ function resetFormModes() {
     
     // LF Form
     const lfTitle = document.getElementById('lf-form-title');
-    if (lfTitle) lfTitle.textContent = '📝 Post New Item';
+    if (lfTitle) lfTitle.textContent = 'Post New Item';
     const lfBtn = document.querySelector('#lf-form .btn-text');
     if (lfBtn) lfBtn.textContent = 'Post Item';
 
     // RS Form
     const rsTitle = document.getElementById('rs-form-title');
-    if (rsTitle) rsTitle.textContent = '📝 List Item for Sale';
+    if (rsTitle) rsTitle.textContent = 'List Item for Sale';
     const rsBtn = document.querySelector('#rs-form .btn-text');
     if (rsBtn) rsBtn.textContent = 'List for Sale';
     const rsImg = document.getElementById('rs-images');
@@ -1432,7 +1459,7 @@ async function handleLFSubmit(e) {
             submitBtn.classList.remove('loading');
             return;
         }
-        showToast('Item updated successfully! 🎉', 'success');
+        showToast('Item updated successfully.', 'success');
         editingPostId = null;
     } else {
         // New post
@@ -1456,7 +1483,7 @@ async function handleLFSubmit(e) {
 
         // Record ownership in myPostIds
         addMyPostId(saved.id);
-        showToast(`${type === 'lost' ? 'Lost' : 'Found'} item posted successfully! 🎉`, 'success');
+        showToast(`${type === 'lost' ? 'Lost' : 'Found'} item posted successfully.`, 'success');
     }
 
     state.lostFound = getPosts('lostfound');
@@ -1601,7 +1628,7 @@ async function handleRSSubmit(e) {
             submitBtn.classList.remove('loading');
             return;
         }
-        showToast('Item updated successfully! 💰', 'success');
+        showToast('Item updated successfully.', 'success');
         editingPostId = null;
     } else {
         // New post
@@ -1626,7 +1653,7 @@ async function handleRSSubmit(e) {
 
         // Record ownership in myPostIds
         addMyPostId(saved.id);
-        showToast('Item listed for sale! 💰 Good luck!', 'success');
+        showToast('Item listed for sale.', 'success');
     }
 
     state.resell = getPosts('resell');
@@ -1800,7 +1827,7 @@ function setupModals() {
 // ============ GLOBAL FUNCTIONS (for onclick handlers) ============
 
 function showCredits() {
-    alert(`🎓 CampusConnect v1.0.0
+    alert(`CampusConnect v1.0.0
 
 Built by a sleep-deprived 1st year CS student
 for CS101 "Web Development" final project.
@@ -1813,34 +1840,20 @@ Tech stack:
 • Google Fonts (Comic Neue & Patrick Hand)
 
 Special thanks to:
-☕ Coffee (lots of it)
-🌙 3 AM debugging sessions
-📚 Stack Overflow
-🎓 My professor (hopefully this passes)
+Coffee
+Late night debugging sessions
+Stack Overflow
+CS Department
 
 "Code works on my machine" © 2026`);
 }
 
-function clearAllData() {
-    if (confirm('⚠️ This will DELETE ALL DATA permanently!\n\nLost & Found items + Resell listings + Ownership.\n\nAre you sure?')) {
-        if (confirm('❗ LAST CHANCE!\n\nThis cannot be undone.\n\nReally delete everything?')) {
-            // Remove items only through data layer deletePost
-            const allPosts = getPosts();
-            allPosts.forEach(post => deletePost(post.id));
-            try {
-                localStorage.removeItem(MY_POST_IDS_KEY);
-            } catch (e) {}
-            state.lostFound = [];
-            state.resell = [];
-            renderAll();
-            showToast('All data cleared! 🗑️', 'warning');
-        }
-    }
-}
+
 
 // ============ INITIALIZATION ============
 
 function init() {
+    initStorage();
     // Load data from data layer
     loadData();
     
@@ -1872,7 +1885,7 @@ function init() {
     // Fun console message
     console.log(`
 ╔══════════════════════════════════════════════════════════╗
-║  🎓 CampusConnect - Dev Console                          ║
+║  CampusConnect - Dev Console                             ║
 ║  Data Layer Active: getPosts, addPost, updatePost,       ║
 ║  deletePost. Ownership via myPostIds. Detail modal on.  ║
 ╠══════════════════════════════════════════════════════════╣
